@@ -1,0 +1,115 @@
+package generated.main;
+
+import de.fhg.iais.roberta.runtime.*;
+import de.fhg.iais.roberta.runtime.ev3.*;
+
+import de.fhg.iais.roberta.mode.general.*;
+import de.fhg.iais.roberta.mode.action.*;
+import de.fhg.iais.roberta.mode.sensor.*;
+import de.fhg.iais.roberta.mode.action.ev3.*;
+import de.fhg.iais.roberta.mode.sensor.ev3.*;
+
+import de.fhg.iais.roberta.components.*;
+
+import java.util.LinkedHashSet;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+
+import lejos.remote.nxt.NXTConnection;
+
+public class line_follower_working2_boost {
+    private static Configuration brickConfiguration;
+    
+    private Set<UsedSensor> usedSensors = new LinkedHashSet<UsedSensor>(Arrays.asList(new UsedSensor(SensorPort.S1, SensorType.TOUCH, TouchSensorMode.TOUCH), new UsedSensor(SensorPort.S3, SensorType.COLOR, ColorSensorMode.RED)));
+    private Hal hal = new Hal(brickConfiguration, usedSensors);
+    
+    public static void main(String[] args) {
+        try {
+             brickConfiguration = new EV3Configuration.Builder()
+                .setWheelDiameter(5.6)
+                .setTrackWidth(18.0)
+                .addActor(ActorPort.A, new Actor(ActorType.LARGE, true, DriveDirection.FOREWARD, MotorSide.RIGHT))
+                .addActor(ActorPort.D, new Actor(ActorType.LARGE, true, DriveDirection.FOREWARD, MotorSide.LEFT))
+                .addSensor(SensorPort.S1, new Sensor(SensorType.TOUCH))
+                .addSensor(SensorPort.S3, new Sensor(SensorType.COLOR))
+                .build();
+            
+            new line_follower_working2_boost().run();
+        } catch ( Exception e ) {
+            Hal.displayExceptionWaitForKeyPress(e);
+        }
+    }
+    
+    float ___i = 0;
+    float ___imax = 15;
+    float ___i_prec = 0;
+    float ___num = 0;
+    float ___medie = 0;
+    float ___corectie = 0;
+    float ___viteza_stanga = 0;
+    float ___viteza_dreapta = 0;
+    float ___num_viteza = 0;
+    float ___acceleratia = ((float) 0.1);
+    float ___num_frana = 0;
+    
+    public void run() throws Exception {
+        while ( ! hal.isPressed(SensorPort.S1) ) {
+            ___i = hal.getColorSensorRed(SensorPort.S3);
+            ___num = ___num + 1;
+            if ( ___i > ___imax ) {
+                ___imax = ___i;
+            }
+            if ( ___num >= 2 ) {
+                ___medie = ( ___i + ___i_prec ) / ((float) 2);
+                ___corectie = 100 / ((float) ___medie);
+                ___viteza_stanga = ( ( ( ((float) 3.5) * ___medie ) * 80 ) / ((float) 100) ) + 20;
+                ___viteza_dreapta = 120 - ___viteza_stanga;
+                if ( (float) Math.abs(___viteza_dreapta - ___viteza_stanga) <= 5 ) {
+                    ___num_viteza = ___num_viteza + 1;
+                }
+                if ( ___num_viteza >= 3 ) {
+                    ___viteza_dreapta = ___viteza_dreapta + ___acceleratia;
+                    ___viteza_stanga = ___viteza_stanga + ___acceleratia;
+                    ___acceleratia = ___acceleratia + ((float) 0.2);
+                    ___num_frana = 0;
+                }
+                if ( (float) Math.abs(___viteza_dreapta - ___viteza_stanga) > 5 ) {
+                    ___acceleratia = ((float) 0.5);
+                    ___num_frana = ___num_frana + 1;
+                    if ( ___num_frana == 1 ) {
+                        ___acceleratia = 8;
+                    }
+                    if ( ___num_frana == 2 ) {
+                        ___acceleratia = 9;
+                    }
+                    if ( ___num_frana == 3 ) {
+                        ___acceleratia = 3;
+                    }
+                    if ( ___num_frana > 3 ) {
+                        ___acceleratia = 4;
+                    }
+                    ___viteza_stanga = ( ( ( ( ((float) 3.5) * ___medie ) * 80 ) / ((float) 100) ) + 20 ) - ___acceleratia;
+                    ___viteza_dreapta = ( 120 - ___viteza_stanga ) - ___acceleratia;
+                } else if ( true ) {
+                }
+                if ( ___viteza_dreapta > 0 ) {
+                    ___viteza_dreapta = ___viteza_dreapta - 2;
+                    ___viteza_stanga = ___viteza_stanga + 2;
+                } else {
+                    ___viteza_dreapta = ___viteza_dreapta + 2;
+                    ___viteza_stanga = ___viteza_stanga - 2;
+                }
+                hal.turnOnRegulatedMotor(ActorPort.A, ___viteza_dreapta);
+                hal.turnOnRegulatedMotor(ActorPort.D, ___viteza_stanga);
+                ___i_prec = ___i;
+            }
+            ___i_prec = ___i;
+        }
+    }
+
+}
